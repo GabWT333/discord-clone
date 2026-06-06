@@ -1,7 +1,7 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">333 Staff</string>
-    <string name="title_activity_main">BLD Discord</string>
+    <string name="title_activity_main">333 Staff</string>
     <string name="package_name">com.bldblood.discord</string>
     <string name="custom_url_scheme">com.bldblood.discord</string>
 </resources>
