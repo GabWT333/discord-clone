@@ -244,7 +244,7 @@ export default function App() {
             {channels.filter(c => c.type === "voice").map(ch => (
               <div key={ch.id} className="channel-item"
                 style={{
-                  padding: "6px 16px", cursor: "pointer", color: "#96989d",
+                  padding: "6px 16px", cursor: pointer, color: "#96989d",
                   fontSize: 14, display: "flex", alignItems: "center", gap: 6, borderRadius: 6, margin: "1px 8px",
                 }}>
                 <span style={{ fontSize: 14 }}>🔊</span> {ch.name}
@@ -430,4 +430,3 @@ export default function App() {
     </>
   );
 }
-
