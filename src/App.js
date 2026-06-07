@@ -123,7 +123,7 @@ function LoginScreen({ onLogin }) {
     if (!window.recaptchaVerifier) {
       window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", { size: "invisible", callback: () => {} });
     }
-  }, // eslint-disable-line
+  }, []);
 
   const sendOTP = async () => {
     setError("");
