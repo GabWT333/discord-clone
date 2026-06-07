@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 
 // ─── Firebase config rimossa — login semplice con username ───
 
-// ─── VPS API ─────────────────────────────────────────────────
+// ─── VPS API ────────────────────────────────────────────
 const API_URL = "http://85.155.151.62:8080";
 const API_TOKEN = "bld333_xK9mP2qR7vN4wL8zA5";
 const apiHeaders = { "Content-Type": "application/json", "x-api-token": API_TOKEN };
@@ -220,7 +220,7 @@ function VPSPanel() {
   const loadServices = useCallback(async () => { const r = await api("/services"); if (Array.isArray(r)) setServices(r); }, []);
   const loadPm2      = useCallback(async () => { const r = await api("/pm2");      if (Array.isArray(r)) setPm2(r); }, []);
 
-  useEffect(() => { loadStatus(); loadServices(); loadPm2(); }, [loadStatus, loadServices, loadPm2]);
+  useEffect(() => { loadStatus(); loadServices(); loadPm2(); }, []);
 
   useEffect(() => {
     if (!autoRefresh) return;
@@ -230,7 +230,7 @@ function VPSPanel() {
       if (tab === "bot")      loadPm2();
     }, 10000);
     return () => clearInterval(iv);
-  }, [autoRefresh, tab, loadStatus, loadServices, loadPm2]);
+  }, [autoRefresh, tab]);
 
   const serviceAction = async (name, action) => {
     const r = await api(`/service/${name}/${action}`, "POST");
