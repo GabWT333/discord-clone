@@ -144,13 +144,11 @@ function Terminal({ user, onLogout }) {
     }
   };
 
-  // Converte escape ANSI base in stili CSS (colori)
+  const ANSI_RE = new RegExp(String.fromCharCode(27) + "\\[[^" + String.fromCharCode(27) + "]*m|" + String.fromCharCode(27) + "\\[[^m]*[A-Z]|" + String.fromCharCode(27) + "\\]", "g");
+
+  // Converte escape ANSI in testo pulito
   const renderLine = (line, idx) => {
-    // Rimuove escape non gestiti e colora testo semplice
-    const clean = line
-      .replace(/\x1b\[(\d+;)*\d*m/g, "") // strip ANSI color codes per semplicità
-      .replace(/\x1b\[[^m]*[A-Z]/g, "")   // strip altri escape
-      .replace(/\x1b\]/g, "");
+    const clean = line.replace(ANSI_RE, "");
     return (
       <div key={idx} style={{
         fontFamily: "monospace",
