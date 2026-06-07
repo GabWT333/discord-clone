@@ -218,7 +218,7 @@ function VPSPanel() {
 
   useEffect(() => {
     if (!autoRefresh) return;
-    const iv = setInterval(() => {
+    setInterval(() => {
       if (tab === "status")   loadStatus();
       if (tab === "services") loadServices();
       if (tab === "bot")      loadPm2();
