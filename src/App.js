@@ -220,7 +220,7 @@ function VPSPanel() {
   const loadServices = useCallback(async () => { const r = await api("/services"); if (Array.isArray(r)) setServices(r); }, []);
   const loadPm2      = useCallback(async () => { const r = await api("/pm2");      if (Array.isArray(r)) setPm2(r); }, []);
 
-  useEffect(() => { loadStatus(); loadServices(); loadPm2(); }, []);
+  useEffect(() => { loadStatus(); loadServices(); loadPm2(); }, [loadStatus, loadServices, loadPm2]);
 
   useEffect(() => {
     if (!autoRefresh) return;
@@ -230,7 +230,7 @@ function VPSPanel() {
       if (tab === "bot")      loadPm2();
     }, 10000);
     return () => clearInterval(iv);
-  }, [autoRefresh, tab]);
+  }, [autoRefresh, tab, loadStatus, loadServices, loadPm2]);
 
   const serviceAction = async (name, action) => {
     const r = await api(`/service/${name}/${action}`, "POST");
