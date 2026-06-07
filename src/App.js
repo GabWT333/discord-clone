@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
-const WS_URL = "ws:/85.155.151.62/:8082"; // <-- cambia con il tuo IP
+const WS_URL = "ws://85.155.151.62:8082"; // <-- cambia con il tuo IP
 const TOKEN  = "cambia_questo_token_segreto"; // <-- stesso token del server.js
 
 // ─── Login ────────────────────────────────────────────────────
