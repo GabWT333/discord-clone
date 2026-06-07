@@ -1,18 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { initializeApp } from "firebase/app";
-import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 
-// ─── Firebase ───────────────────────────────────────────────
-const firebaseConfig = {
-  apiKey: "AIzaSyDkzSSr-7iTTds-Bdl-cGqDVld4NoM5FyA",
-  authDomain: "app333-eb308.firebaseapp.com",
-  projectId: "app333-eb308",
-  storageBucket: "app333-eb308.firebasestorage.app",
-  messagingSenderId: "376156573506",
-  appId: "1:376156573506:web:a5b3aecb1d841c556442db",
-};
-const firebaseApp = initializeApp(firebaseConfig);
-const auth = getAuth(firebaseApp);
+// ─── Firebase config rimossa — login semplice con username ───
 
 // ─── VPS API ─────────────────────────────────────────────────
 const API_URL = "http://85.155.151.62:8080";
@@ -82,7 +70,7 @@ function ActionBtn({ label, color = "#5865f2", onClick, small }) {
   const [loading, setLoading] = useState(false);
   const handle = async () => { setLoading(true); await onClick(); setLoading(false); };
   return (
-    <button onClick={handle} disabled={loading} style={{ background: loading ? "#4f545c" : color, border: "none", borderRadius: 8, padding: small ? "5px 12px" : "8px 16px", color: "#fff", fontSize: small ? 11 : 13, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: loading ? 0.7 : 1 }}>
+    <button onClick={handle} disabled={loading} style={{ background: loading ? "#4f545c" : color, border: "none", borderRadius: 8, padding: small ? "7px 14px" : "10px 18px", color: "#fff", fontSize: small ? 12 : 14, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: loading ? 0.7 : 1, minHeight: 36 }}>
       {loading ? "..." : label}
     </button>
   );
@@ -91,15 +79,15 @@ function ActionBtn({ label, color = "#5865f2", onClick, small }) {
 function StatusBadge({ status }) {
   const colors = { active: "#23a55a", inactive: "#f23f43", online: "#23a55a", stopped: "#f23f43", errored: "#f0b232" };
   const c = colors[status] || "#96989d";
-  return <span style={{ background: c + "22", color: c, borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 700 }}>{status}</span>;
+  return <span style={{ background: c + "22", color: c, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>{status}</span>;
 }
 
 function Gauge({ label, value, max, unit = "", color = "#5865f2" }) {
   const pct = Math.min(100, Math.round((value / max) * 100));
   const c = pct > 85 ? "#f23f43" : pct > 60 ? "#f0b232" : color;
   return (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5, fontSize: 13, color: "#dcddde" }}>
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 13, color: "#dcddde" }}>
         <span>{label}</span>
         <span style={{ fontWeight: 700, color: c }}>{value}{unit} / {max}{unit}</span>
       </div>
@@ -110,89 +98,110 @@ function Gauge({ label, value, max, unit = "", color = "#5865f2" }) {
   );
 }
 
-// ─── Login Screen ─────────────────────────────────────────────
+// ─── Login Screen (senza Firebase/SMS) ───────────────────────
 function LoginScreen({ onLogin }) {
-  const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState("");
-  const [step, setStep] = useState("phone");
-  const [loading, setLoading] = useState(false);
+  const [username, setUsername] = useState("");
   const [error, setError] = useState("");
-  const [confirm, setConfirm] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", { size: "invisible", callback: () => {} });
-    }
-  }, []);
-
-  const sendOTP = async () => {
+  const handleLogin = async () => {
     setError("");
-    if (!phone.trim()) { setError("Inserisci il numero"); return; }
-    let number = phone.trim();
-    if (!number.startsWith("+")) number = "+39" + number.replace(/^0/, "");
+    const name = username.trim();
+    if (!name) { setError("Inserisci un nickname"); return; }
+    if (name.length < 2) { setError("Minimo 2 caratteri"); return; }
+    if (name.length > 20) { setError("Massimo 20 caratteri"); return; }
     setLoading(true);
-    try {
-      const result = await signInWithPhoneNumber(auth, number, window.recaptchaVerifier);
-      setConfirm(result); setStep("otp");
-    } catch (e) {
-      setError("Errore: " + (e.message || "numero non valido"));
-      if (window.recaptchaVerifier) { window.recaptchaVerifier.clear(); window.recaptchaVerifier = null; }
-    }
-    setLoading(false);
-  };
-
-  const verifyOTP = async () => {
-    setError("");
-    if (!otp.trim()) { setError("Inserisci il codice OTP"); return; }
-    setLoading(true);
-    try {
-      const result = await confirm.confirm(otp);
-      const user = result.user;
-      const name = user.displayName || "User" + user.uid.slice(0, 4);
-      onLogin({ name, avatar: name[0].toUpperCase(), color: AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)], status: "online", phone: user.phoneNumber });
-    } catch { setError("Codice OTP non valido"); }
+    // Simula breve caricamento
+    await new Promise(r => setTimeout(r, 400));
+    onLogin({
+      name,
+      avatar: name[0].toUpperCase(),
+      color: AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
+      status: "online",
+    });
     setLoading(false);
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#1e1f22", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "'Syne', sans-serif" }}>
-      <div id="recaptcha-container" />
-      <div style={{ background: "#2b2d31", borderRadius: 20, padding: "40px 32px", width: "100%", maxWidth: 400, boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }}>
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div style={{ fontSize: 52, marginBottom: 10 }}>🩸</div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: "#fff" }}>BLD BLOOD</div>
-          <div style={{ fontSize: 14, color: "#96989d", marginTop: 6 }}>
-            {step === "phone" ? "Accedi con il tuo numero" : "Controlla gli SMS"}
-          </div>
+    <div style={{
+      minHeight: "100dvh",
+      background: "linear-gradient(135deg, #1a0a0a 0%, #1e1f22 50%, #0d1117 100%)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "env(safe-area-inset-top, 20px) 20px env(safe-area-inset-bottom, 20px) 20px",
+      fontFamily: "'Syne', sans-serif",
+    }}>
+      <div style={{
+        background: "rgba(43,45,49,0.95)",
+        backdropFilter: "blur(20px)",
+        borderRadius: 24,
+        padding: "44px 28px 36px",
+        width: "100%",
+        maxWidth: 420,
+        boxShadow: "0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06)",
+      }}>
+        {/* Logo */}
+        <div style={{ textAlign: "center", marginBottom: 36 }}>
+          <div style={{ fontSize: 64, marginBottom: 12, filter: "drop-shadow(0 4px 16px rgba(192,57,43,0.5))" }}>🩸</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: "#fff", letterSpacing: -0.5 }}>BLD BLOOD</div>
+          <div style={{ fontSize: 14, color: "#96989d", marginTop: 6 }}>Inserisci il tuo nickname per entrare</div>
         </div>
 
-        {step === "phone" ? (
-          <>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#96989d", marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Numero di telefono</div>
-            <input value={phone} onChange={e => setPhone(e.target.value)} onKeyDown={e => e.key === "Enter" && sendOTP()}
-              placeholder="+39 333 1234567"
-              style={{ width: "100%", background: "#1e1f22", border: "2px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "14px 16px", color: "#fff", fontSize: 16, fontFamily: "inherit", outline: "none", marginBottom: 6 }} />
-            <div style={{ fontSize: 11, color: "#96989d", marginBottom: 16 }}>Prefisso +39 aggiunto automaticamente</div>
-            {error && <div style={{ color: "#f23f43", fontSize: 13, marginBottom: 12 }}>{error}</div>}
-            <button onClick={sendOTP} disabled={loading} style={{ width: "100%", background: loading ? "#4f545c" : "#c0392b", border: "none", borderRadius: 10, padding: 14, color: "#fff", fontSize: 16, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
-              {loading ? "Invio..." : "Invia codice SMS"}
-            </button>
-          </>
-        ) : (
-          <>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#96989d", marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Codice OTP</div>
-            <input value={otp} onChange={e => setOtp(e.target.value)} onKeyDown={e => e.key === "Enter" && verifyOTP()}
-              placeholder="123456" maxLength={6}
-              style={{ width: "100%", background: "#1e1f22", border: "2px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "14px 16px", color: "#fff", fontSize: 28, fontFamily: "monospace", outline: "none", letterSpacing: 10, textAlign: "center", marginBottom: 16 }} />
-            {error && <div style={{ color: "#f23f43", fontSize: 13, marginBottom: 12 }}>{error}</div>}
-            <button onClick={verifyOTP} disabled={loading} style={{ width: "100%", background: loading ? "#4f545c" : "#23a55a", border: "none", borderRadius: 10, padding: 14, color: "#fff", fontSize: 16, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit", marginBottom: 10 }}>
-              {loading ? "Verifica..." : "Conferma codice"}
-            </button>
-            <button onClick={() => { setStep("phone"); setOtp(""); setError(""); }} style={{ width: "100%", background: "transparent", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: 12, color: "#96989d", fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
-              ← Cambia numero
-            </button>
-          </>
+        {/* Input nickname */}
+        <div style={{ fontSize: 11, fontWeight: 700, color: "#96989d", marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Nickname</div>
+        <input
+          value={username}
+          onChange={e => setUsername(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && handleLogin()}
+          placeholder="es. Gab, Lucifero..."
+          autoComplete="off"
+          autoCapitalize="off"
+          style={{
+            width: "100%",
+            background: "#1e1f22",
+            border: "2px solid rgba(255,255,255,0.08)",
+            borderRadius: 12,
+            padding: "16px 18px",
+            color: "#fff",
+            fontSize: 17,
+            fontFamily: "inherit",
+            outline: "none",
+            marginBottom: 8,
+            transition: "border-color 0.2s",
+          }}
+          onFocus={e => e.target.style.borderColor = "#c0392b"}
+          onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.08)"}
+        />
+
+        {error && (
+          <div style={{ color: "#f23f43", fontSize: 13, marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+            <span>⚠️</span> {error}
+          </div>
         )}
+
+        <button
+          onClick={handleLogin}
+          disabled={loading}
+          style={{
+            width: "100%",
+            background: loading ? "#4f545c" : "linear-gradient(135deg, #c0392b, #e74c3c)",
+            border: "none",
+            borderRadius: 12,
+            padding: "16px",
+            color: "#fff",
+            fontSize: 16,
+            fontWeight: 700,
+            cursor: loading ? "not-allowed" : "pointer",
+            fontFamily: "inherit",
+            marginTop: 4,
+            boxShadow: loading ? "none" : "0 4px 20px rgba(192,57,43,0.4)",
+            transition: "all 0.2s",
+            minHeight: 52,
+          }}
+        >
+          {loading ? "Accesso..." : "Entra nel Server 🩸"}
+        </button>
       </div>
     </div>
   );
@@ -207,23 +216,20 @@ function VPSPanel() {
   const [log, setLog] = useState("");
   const [autoRefresh, setAutoRefresh] = useState(true);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const loadStatus   = useCallback(async () => { const r = await api("/status");   if (!r.error) setStatus(r); }, []);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const loadServices = useCallback(async () => { const r = await api("/services"); if (Array.isArray(r)) setServices(r); }, []);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const loadPm2      = useCallback(async () => { const r = await api("/pm2");      if (Array.isArray(r)) setPm2(r); }, []);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
   useEffect(() => { loadStatus(); loadServices(); loadPm2(); }, []);
 
   useEffect(() => {
     if (!autoRefresh) return;
-    setInterval(() => {
+    const iv = setInterval(() => {
       if (tab === "status")   loadStatus();
       if (tab === "services") loadServices();
       if (tab === "bot")      loadPm2();
     }, 10000);
-// eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => clearInterval(iv);
   }, [autoRefresh, tab]);
 
   const serviceAction = async (name, action) => {
@@ -250,23 +256,23 @@ function VPSPanel() {
   ];
 
   return (
-    <div style={{ flex: 1, overflowY: "auto", padding: 16, background: "#313338" }}>
+    <div style={{ flex: 1, overflowY: "auto", padding: "14px 14px", background: "#313338", WebkitOverflowScrolling: "touch" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
         <div>
           <div style={{ fontSize: 18, fontWeight: 800, color: "#fff" }}>🖥️ VPS Manager</div>
           <div style={{ fontSize: 11, color: "#96989d" }}>Controllo completo della VPS</div>
         </div>
-        <div onClick={() => setAutoRefresh(v => !v)} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", background: "#2b2d31", borderRadius: 20, padding: "5px 12px" }}>
+        <div onClick={() => setAutoRefresh(v => !v)} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", background: "#2b2d31", borderRadius: 20, padding: "7px 14px", minHeight: 36 }}>
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: autoRefresh ? "#23a55a" : "#96989d" }} />
-          <span style={{ fontSize: 11, color: "#96989d" }}>{autoRefresh ? "Live 10s" : "Pausa"}</span>
+          <span style={{ fontSize: 12, color: "#96989d" }}>{autoRefresh ? "Live 10s" : "Pausa"}</span>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 18, overflowX: "auto" }}>
+      {/* Tabs — scrollabili orizzontalmente */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 18, overflowX: "auto", paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
         {tabs.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{ background: tab === t.id ? "#5865f2" : "#2b2d31", border: "none", borderRadius: 10, padding: "8px 14px", color: tab === t.id ? "#fff" : "#96989d", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+          <button key={t.id} onClick={() => setTab(t.id)} style={{ background: tab === t.id ? "#5865f2" : "#2b2d31", border: "none", borderRadius: 10, padding: "10px 16px", color: tab === t.id ? "#fff" : "#96989d", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", minHeight: 40 }}>
             {t.label}
           </button>
         ))}
@@ -284,7 +290,7 @@ function VPSPanel() {
               <Gauge label="CPU" value={status.cpu} max={100} unit="%" color="#5865f2" />
               <Gauge label="RAM" value={status.ram.used} max={status.ram.total} unit=" MB" color="#23a55a" />
               <div style={{ fontSize: 13, color: "#96989d", marginTop: 4 }}>💾 Disco: {status.disk.used} / {status.disk.total} ({status.disk.percent})</div>
-              <div style={{ fontSize: 13, color: "#96989d", marginTop: 6 }}>⏱ Uptime: {status.uptime}</div>
+              <div style={{ fontSize: 13, color: "#96989d", marginTop: 8 }}>⏱ Uptime: {status.uptime}</div>
             </>
           ) : <div style={{ color: "#96989d", fontSize: 13 }}>Connessione alla VPS...</div>}
         </div>
@@ -299,12 +305,12 @@ function VPSPanel() {
           </div>
           {services.length === 0 && <div style={{ color: "#96989d", fontSize: 13 }}>Caricamento...</div>}
           {services.map(s => (
-            <div key={s.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-              <div>
-                <div style={{ fontWeight: 600, color: "#fff", fontSize: 14, marginBottom: 4 }}>{s.name}</div>
+            <div key={s.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,0.05)", gap: 8 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 600, color: "#fff", fontSize: 14, marginBottom: 5 }}>{s.name}</div>
                 <StatusBadge status={s.status} />
               </div>
-              <div style={{ display: "flex", gap: 5 }}>
+              <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                 <ActionBtn label="▶" small color="#23a55a" onClick={() => serviceAction(s.name, "start")} />
                 <ActionBtn label="↻" small color="#f0b232" onClick={() => serviceAction(s.name, "restart")} />
                 <ActionBtn label="■" small color="#f23f43" onClick={() => serviceAction(s.name, "stop")} />
@@ -323,11 +329,11 @@ function VPSPanel() {
           </div>
           {pm2.length === 0 && <div style={{ color: "#96989d", fontSize: 13 }}>Nessun processo PM2 trovato</div>}
           {pm2.map(p => (
-            <div key={p.id} style={{ padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+            <div key={p.id} style={{ padding: "14px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
                 <div>
                   <div style={{ fontWeight: 700, color: "#fff", fontSize: 14 }}>{p.name}</div>
-                  <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", gap: 8, marginTop: 5, flexWrap: "wrap" }}>
                     <StatusBadge status={p.status} />
                     <span style={{ fontSize: 11, color: "#96989d" }}>CPU: {p.cpu}%</span>
                     <span style={{ fontSize: 11, color: "#96989d" }}>RAM: {p.memory}MB</span>
@@ -335,7 +341,7 @@ function VPSPanel() {
                   </div>
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <ActionBtn label="▶ Start"   small color="#23a55a" onClick={() => pm2Action(p.name, "start")} />
                 <ActionBtn label="↻ Restart" small color="#f0b232" onClick={() => pm2Action(p.name, "restart")} />
                 <ActionBtn label="■ Stop"    small color="#f23f43" onClick={() => pm2Action(p.name, "stop")} />
@@ -372,7 +378,7 @@ function VPSPanel() {
         <div style={{ background: "#1e1f22", borderRadius: 10, padding: 14, marginTop: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
             <span style={{ fontSize: 11, fontWeight: 700, color: "#96989d", textTransform: "uppercase" }}>Output</span>
-            <span onClick={() => setLog("")} style={{ fontSize: 12, color: "#96989d", cursor: "pointer" }}>✕</span>
+            <span onClick={() => setLog("")} style={{ fontSize: 16, color: "#96989d", cursor: "pointer", padding: "0 4px" }}>✕</span>
           </div>
           <pre style={{ fontSize: 12, color: "#23a55a", fontFamily: "monospace", whiteSpace: "pre-wrap", wordBreak: "break-all", maxHeight: 220, overflowY: "auto" }}>{log}</pre>
         </div>
@@ -443,6 +449,7 @@ export default function App() {
     setActiveServer(id);
     if (id === VPS_SERVER_ID) { setActiveChannel(9001); }
     else { setActiveChannel(data.channels[id][0].id); }
+    setShowSidebar(false);
   };
 
   const allServers = [...data.servers, { id: VPS_SERVER_ID, name: "VPS Manager", icon: "🖥️", color: "#2ecc71" }];
@@ -452,52 +459,123 @@ export default function App() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #1e1f22; color: #dcddde; font-family: 'Syne', sans-serif; overflow: hidden; }
-        ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: #1a1b1e; border-radius: 3px; }
-        input { outline: none; }
-        .msg-row:hover { background: rgba(255,255,255,0.03); }
-        .ch-item { padding: 7px 12px; cursor: pointer; color: #96989d; font-size: 14px; display: flex; align-items: center; gap: 6px; border-radius: 6px; margin: 1px 8px; transition: all 0.15s; }
-        .ch-item:hover { background: rgba(255,255,255,0.06); color: #dcddde; }
+        html, body { height: 100%; overflow: hidden; }
+        body {
+          background: #1e1f22;
+          color: #dcddde;
+          font-family: 'Syne', sans-serif;
+          /* safe area Android / Xiaomi */
+          padding-top: env(safe-area-inset-top, 0px);
+          padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        ::-webkit-scrollbar { width: 3px; height: 3px; }
+        ::-webkit-scrollbar-thumb { background: #1a1b1e; border-radius: 3px; }
+        input { outline: none; -webkit-tap-highlight-color: transparent; }
+        button { -webkit-tap-highlight-color: transparent; }
+        .msg-row:active { background: rgba(255,255,255,0.04); }
+        .ch-item {
+          padding: 9px 12px;
+          cursor: pointer;
+          color: #96989d;
+          font-size: 14px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          border-radius: 8px;
+          margin: 2px 8px;
+          transition: all 0.15s;
+          min-height: 40px;
+        }
+        .ch-item:active { background: rgba(255,255,255,0.08); color: #dcddde; }
         .ch-item.active { background: rgba(255,255,255,0.1); color: #fff; }
       `}</style>
 
-      <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+      {/* Root container — usa 100dvh per Android con barra navigazione */}
+      <div style={{ display: "flex", height: "100dvh", overflow: "hidden", position: "relative" }}>
 
-        {/* Mobile overlay */}
-        {showSidebar && <div onClick={() => setShowSidebar(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 50 }} />}
+        {/* Overlay scuro quando sidebar aperta */}
+        {showSidebar && (
+          <div
+            onClick={() => setShowSidebar(false)}
+            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 50, backdropFilter: "blur(2px)" }}
+          />
+        )}
 
-        {/* Sidebar */}
-        <div style={{ display: "flex", position: "fixed", top: 0, left: 0, height: "100vh", zIndex: 60, transform: showSidebar ? "translateX(0)" : "translateX(-100%)", transition: "transform 0.25s ease" }}>
-          {/* Server icons */}
-          <div style={{ width: 62, background: "#1e1f22", display: "flex", flexDirection: "column", alignItems: "center", padding: "12px 0", overflowY: "auto" }}>
+        {/* ── SIDEBAR (slide-in da sinistra) ── */}
+        <div style={{
+          display: "flex",
+          position: "fixed",
+          top: 0,
+          left: 0,
+          height: "100dvh",
+          zIndex: 60,
+          transform: showSidebar ? "translateX(0)" : "translateX(-100%)",
+          transition: "transform 0.28s cubic-bezier(0.4,0,0.2,1)",
+          paddingTop: "env(safe-area-inset-top, 0px)",
+        }}>
+          {/* Colonna icone server */}
+          <div style={{
+            width: 66,
+            background: "#1e1f22",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            padding: "14px 0",
+            overflowY: "auto",
+            WebkitOverflowScrolling: "touch",
+          }}>
             {allServers.map(s => (
-              <div key={s.id} onClick={() => switchServer(s.id)} style={{ position: "relative", cursor: "pointer", marginBottom: 8 }}>
-                <div style={{ position: "absolute", left: -4, top: "50%", transform: "translateY(-50%)", width: 4, height: s.id === activeServer ? 36 : 8, background: "#fff", borderRadius: "0 4px 4px 0", transition: "height 0.2s" }} />
-                <div style={{ width: 44, height: 44, borderRadius: s.id === activeServer ? 14 : 22, background: s.id === activeServer ? s.color : "#36393f", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, transition: "all 0.2s", boxShadow: s.id === activeServer ? "0 0 0 2px " + s.color : "none" }}>
+              <div key={s.id} onClick={() => switchServer(s.id)} style={{ position: "relative", cursor: "pointer", marginBottom: 10 }}>
+                <div style={{
+                  position: "absolute", left: -4, top: "50%", transform: "translateY(-50%)",
+                  width: 4,
+                  height: s.id === activeServer ? 38 : 8,
+                  background: "#fff",
+                  borderRadius: "0 4px 4px 0",
+                  transition: "height 0.2s",
+                }} />
+                <div style={{
+                  width: 48, height: 48,
+                  borderRadius: s.id === activeServer ? 16 : 24,
+                  background: s.id === activeServer ? s.color : "#36393f",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 20,
+                  transition: "all 0.2s",
+                  boxShadow: s.id === activeServer ? "0 0 0 2px " + s.color : "none",
+                }}>
                   {s.icon}
                 </div>
               </div>
             ))}
             <div style={{ width: 28, height: 1, background: "#36393f", margin: "8px 0" }} />
-            <div onClick={() => setShowAddServer(true)} style={{ width: 44, height: 44, borderRadius: 22, background: "#36393f", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, color: "#23a55a", cursor: "pointer" }}>+</div>
+            <div
+              onClick={() => { setShowAddServer(true); }}
+              style={{ width: 48, height: 48, borderRadius: 24, background: "#36393f", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "#23a55a", cursor: "pointer" }}
+            >+</div>
           </div>
 
-          {/* Channels */}
-          <div style={{ width: 210, background: "#2b2d31", display: "flex", flexDirection: "column" }}>
-            <div style={{ padding: "14px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 8, background: currentServer?.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>{currentServer?.icon}</div>
+          {/* Colonna canali */}
+          <div style={{ width: 220, background: "#2b2d31", display: "flex", flexDirection: "column" }}>
+            {/* Header server */}
+            <div style={{ padding: "16px 14px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 30, height: 30, borderRadius: 8, background: currentServer?.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, flexShrink: 0 }}>{currentServer?.icon}</div>
               <span style={{ fontWeight: 700, fontSize: 14, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentServer?.name}</span>
             </div>
-            <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
+            {/* Lista canali */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "8px 0", WebkitOverflowScrolling: "touch" }}>
               {!isVPS && <>
-                <div style={{ padding: "8px 12px 4px", fontSize: 10, fontWeight: 700, color: "#96989d", textTransform: "uppercase", letterSpacing: 1 }}>Canali Testo</div>
+                <div style={{ padding: "10px 14px 4px", fontSize: 10, fontWeight: 700, color: "#96989d", textTransform: "uppercase", letterSpacing: 1 }}>Canali Testo</div>
                 {channels.filter(c => c.type === "text").map(ch => (
-                  <div key={ch.id} className={"ch-item" + (ch.id === activeChannel ? " active" : "")} onClick={() => { setActiveChannel(ch.id); setShowSidebar(false); }}>
-                    <span>#</span> {ch.name}
+                  <div
+                    key={ch.id}
+                    className={"ch-item" + (ch.id === activeChannel ? " active" : "")}
+                    onClick={() => { setActiveChannel(ch.id); setShowSidebar(false); }}
+                  >
+                    <span style={{ fontSize: 16 }}>#</span> {ch.name}
                   </div>
                 ))}
                 {channels.some(c => c.type === "voice") && <>
-                  <div style={{ padding: "8px 12px 4px", marginTop: 8, fontSize: 10, fontWeight: 700, color: "#96989d", textTransform: "uppercase", letterSpacing: 1 }}>Vocali</div>
+                  <div style={{ padding: "10px 14px 4px", marginTop: 8, fontSize: 10, fontWeight: 700, color: "#96989d", textTransform: "uppercase", letterSpacing: 1 }}>Vocali</div>
                   {channels.filter(c => c.type === "voice").map(ch => (
                     <div key={ch.id} className="ch-item"><span>🔊</span> {ch.name}</div>
                   ))}
@@ -509,62 +587,95 @@ export default function App() {
                 </div>
               )}
             </div>
-            {/* User panel */}
-            <div style={{ padding: "8px 10px", background: "#232428", display: "flex", alignItems: "center", gap: 8, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-              <Avatar letter={me.avatar} color={me.color} size={30} status={me.status} />
+            {/* Pannello utente in basso */}
+            <div style={{
+              padding: "10px 12px",
+              background: "#232428",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              borderTop: "1px solid rgba(255,255,255,0.06)",
+              paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 10px)",
+            }}>
+              <Avatar letter={me.avatar} color={me.color} size={32} status={me.status} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{me.name}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{me.name}</div>
                 <div style={{ fontSize: 10, color: STATUS_COLORS[me.status] }}>Online</div>
               </div>
-              <div onClick={() => { auth.signOut(); setMe(null); }} style={{ fontSize: 14, cursor: "pointer", color: "#96989d" }}>🚪</div>
+              <div
+                onClick={() => { setMe(null); setShowSidebar(false); }}
+                style={{ fontSize: 18, cursor: "pointer", color: "#96989d", padding: "6px" }}
+              >🚪</div>
             </div>
           </div>
         </div>
 
-        {/* Main */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#313338" }}>
+        {/* ── MAIN CONTENT ── */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#313338", overflow: "hidden", width: "100%" }}>
+
           {/* Topbar */}
-          <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(0,0,0,0.2)", display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.02)", flexShrink: 0 }}>
-            <button onClick={() => setShowSidebar(true)} style={{ background: "none", border: "none", color: "#dcddde", fontSize: 20, cursor: "pointer", padding: "0 4px" }}>☰</button>
+          <div style={{
+            padding: "12px 14px",
+            borderBottom: "1px solid rgba(0,0,0,0.25)",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            background: "rgba(255,255,255,0.02)",
+            flexShrink: 0,
+            minHeight: 54,
+          }}>
+            <button
+              onClick={() => setShowSidebar(true)}
+              style={{ background: "none", border: "none", color: "#dcddde", fontSize: 22, cursor: "pointer", padding: "4px 6px", lineHeight: 1 }}
+            >☰</button>
             <span style={{ fontSize: 18, color: "#96989d" }}>{isVPS ? "🖥️" : "#"}</span>
-            <span style={{ fontWeight: 700, fontSize: 15, color: "#fff", flex: 1 }}>{isVPS ? "pannello" : currentChannel?.name}</span>
+            <span style={{ fontWeight: 700, fontSize: 15, color: "#fff", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {isVPS ? "pannello" : currentChannel?.name}
+            </span>
             {!isVPS && onlineCount > 0 && (
-              <div style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(35,165,90,0.15)", borderRadius: 20, padding: "4px 10px" }}>
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#23a55a" }} />
-                <span style={{ fontSize: 12, color: "#23a55a", fontWeight: 700 }}>{onlineCount} online</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(35,165,90,0.15)", borderRadius: 20, padding: "5px 10px", flexShrink: 0 }}>
+                <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#23a55a" }} />
+                <span style={{ fontSize: 12, color: "#23a55a", fontWeight: 700 }}>{onlineCount}</span>
               </div>
             )}
             {!isVPS && (
-              <button onClick={() => setShowMembers(v => !v)} style={{ background: showMembers ? "rgba(255,255,255,0.1)" : "none", border: "none", borderRadius: 6, padding: "6px 8px", cursor: "pointer", color: "#96989d", fontSize: 16 }}>👥</button>
+              <button
+                onClick={() => setShowMembers(v => !v)}
+                style={{ background: showMembers ? "rgba(255,255,255,0.1)" : "none", border: "none", borderRadius: 8, padding: "7px 9px", cursor: "pointer", color: "#96989d", fontSize: 18 }}
+              >👥</button>
             )}
           </div>
 
-          {/* Content */}
+          {/* Content area */}
           <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
             {isVPS ? <VPSPanel /> : (
               <>
-                {/* Chat messages */}
-                <div style={{ flex: 1, overflowY: "auto", padding: "12px 0" }}>
+                {/* Messaggi */}
+                <div style={{ flex: 1, overflowY: "auto", padding: "10px 0", WebkitOverflowScrolling: "touch" }}>
                   {messages.length === 0 && (
-                    <div style={{ textAlign: "center", color: "#96989d", marginTop: 60 }}>
-                      <div style={{ fontSize: 44 }}>💬</div>
-                      <div style={{ marginTop: 10, fontSize: 17, fontWeight: 700, color: "#fff" }}>Inizio di #{currentChannel?.name}</div>
-                      <div style={{ fontSize: 13, marginTop: 4 }}>Sii il primo a scrivere!</div>
+                    <div style={{ textAlign: "center", color: "#96989d", marginTop: 80 }}>
+                      <div style={{ fontSize: 48 }}>💬</div>
+                      <div style={{ marginTop: 12, fontSize: 17, fontWeight: 700, color: "#fff" }}>Inizio di #{currentChannel?.name}</div>
+                      <div style={{ fontSize: 13, marginTop: 6 }}>Sii il primo a scrivere!</div>
                     </div>
                   )}
                   {messages.map((msg, i) => {
                     const grouped = i > 0 && messages[i-1].author === msg.author;
                     return (
-                      <div key={msg.id} className="msg-row" style={{ padding: grouped ? "1px 14px 1px 60px" : "8px 14px", display: "flex", gap: 10, alignItems: "flex-start" }}>
-                        {!grouped ? <Avatar letter={msg.avatar} color={msg.color} size={34} /> : <div style={{ width: 34 }} />}
-                        <div style={{ flex: 1 }}>
+                      <div
+                        key={msg.id}
+                        className="msg-row"
+                        style={{ padding: grouped ? "2px 14px 2px 62px" : "9px 14px", display: "flex", gap: 10, alignItems: "flex-start" }}
+                      >
+                        {!grouped ? <Avatar letter={msg.avatar} color={msg.color} size={36} /> : <div style={{ width: 36 }} />}
+                        <div style={{ flex: 1, minWidth: 0 }}>
                           {!grouped && (
-                            <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 2 }}>
+                            <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 3 }}>
                               <span style={{ fontWeight: 700, color: msg.color, fontSize: 14 }}>{msg.author}</span>
                               <span style={{ fontSize: 11, color: "#72767d" }}>{msg.time}</span>
                             </div>
                           )}
-                          <div style={{ fontSize: 14, color: "#dcddde", lineHeight: 1.5, wordBreak: "break-word" }}>{msg.content}</div>
+                          <div style={{ fontSize: 14, color: "#dcddde", lineHeight: 1.55, wordBreak: "break-word" }}>{msg.content}</div>
                         </div>
                       </div>
                     );
@@ -572,21 +683,19 @@ export default function App() {
                   <div ref={bottomRef} />
                 </div>
 
-                {/* Members sidebar */}
+                {/* Sidebar membri (si sovrappone su mobile) */}
                 {showMembers && (
-                  <div style={{ width: 190, background: "#2b2d31", overflowY: "auto", padding: "12px 0", flexShrink: 0 }}>
+                  <div style={{ width: 200, background: "#2b2d31", overflowY: "auto", padding: "12px 0", flexShrink: 0, WebkitOverflowScrolling: "touch" }}>
                     <div style={{ padding: "4px 12px 8px", fontSize: 11, fontWeight: 700, color: "#23a55a", textTransform: "uppercase", letterSpacing: 1 }}>🟢 {onlineCount} online</div>
                     {["Owner","Admin","Member"].map(role => {
                       const group = members.filter(m => m.role === role);
                       if (!group.length) return null;
                       return (
                         <div key={role}>
-                          <div style={{ padding: "6px 12px 3px", fontSize: 10, fontWeight: 700, color: "#96989d", textTransform: "uppercase", letterSpacing: 1 }}>{role} — {group.length}</div>
+                          <div style={{ padding: "6px 12px 4px", fontSize: 10, fontWeight: 700, color: "#96989d", textTransform: "uppercase", letterSpacing: 1 }}>{role} — {group.length}</div>
                           {group.map(m => (
-                            <div key={m.id} style={{ padding: "5px 12px", display: "flex", alignItems: "center", gap: 8, cursor: "pointer", borderRadius: 6, margin: "1px 6px" }}
-                              onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.06)"}
-                              onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                              <Avatar letter={m.avatar} color={m.color} size={28} status={m.status} />
+                            <div key={m.id} style={{ padding: "7px 12px", display: "flex", alignItems: "center", gap: 8, borderRadius: 6, margin: "1px 6px", minHeight: 44 }}>
+                              <Avatar letter={m.avatar} color={m.color} size={30} status={m.status} />
                               <div>
                                 <div style={{ fontSize: 12, fontWeight: 600, color: m.status === "offline" ? "#72767d" : "#dcddde" }}>{m.name}</div>
                                 <div style={{ fontSize: 10, color: STATUS_COLORS[m.status] }}>{m.status}</div>
@@ -602,33 +711,70 @@ export default function App() {
             )}
           </div>
 
-          {/* Input (solo chat) */}
+          {/* Input messaggio */}
           {!isVPS && (
-            <div style={{ padding: "0 12px 12px", flexShrink: 0 }}>
-              <div style={{ background: "#383a40", borderRadius: 10, display: "flex", alignItems: "center", padding: "0 12px" }}>
-                <span style={{ color: "#96989d", fontSize: 18, padding: "10px 8px 10px 0" }}>+</span>
-                <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && sendMessage()}
+            <div style={{
+              padding: "0 12px",
+              paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
+              flexShrink: 0,
+              background: "#313338",
+            }}>
+              <div style={{ background: "#383a40", borderRadius: 12, display: "flex", alignItems: "center", padding: "0 14px" }}>
+                <span style={{ color: "#96989d", fontSize: 20, paddingRight: 10, paddingTop: 12, paddingBottom: 12 }}>+</span>
+                <input
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && sendMessage()}
                   placeholder={"Scrivi in #" + (currentChannel?.name || "")}
-                  style={{ flex: 1, background: "transparent", border: "none", color: "#dcddde", fontSize: 14, padding: "12px 0", fontFamily: "inherit" }} />
-                <span onClick={sendMessage} style={{ cursor: "pointer", fontSize: 18, padding: "10px 0 10px 8px", color: input.trim() ? "#5865f2" : "#4f545c" }}>➤</span>
+                  style={{
+                    flex: 1,
+                    background: "transparent",
+                    border: "none",
+                    color: "#dcddde",
+                    fontSize: 15,
+                    padding: "14px 0",
+                    fontFamily: "inherit",
+                  }}
+                />
+                <span
+                  onClick={sendMessage}
+                  style={{ cursor: "pointer", fontSize: 20, paddingLeft: 10, color: input.trim() ? "#5865f2" : "#4f545c", transition: "color 0.15s" }}
+                >➤</span>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Add Server Modal */}
+      {/* Modal crea server */}
       {showAddServer && (
-        <div onClick={() => setShowAddServer(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 20 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: "#313338", borderRadius: 16, padding: 28, width: "100%", maxWidth: 400, boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }}>
+        <div
+          onClick={() => setShowAddServer(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 20 }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: "#313338", borderRadius: 20, padding: "30px 24px", width: "100%", maxWidth: 400, boxShadow: "0 24px 60px rgba(0,0,0,0.5)" }}
+          >
             <div style={{ fontSize: 20, fontWeight: 800, color: "#fff", marginBottom: 6 }}>Crea un Server</div>
             <div style={{ fontSize: 13, color: "#96989d", marginBottom: 20 }}>Il tuo spazio per te e i tuoi amici.</div>
-            <input value={newServerName} onChange={e => setNewServerName(e.target.value)} onKeyDown={e => e.key === "Enter" && addServer()}
-              placeholder="Nome del server" autoFocus
-              style={{ width: "100%", background: "#1e1f22", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "12px 14px", color: "#fff", fontSize: 14, fontFamily: "inherit", marginBottom: 16 }} />
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button onClick={() => setShowAddServer(false)} style={{ background: "transparent", border: "none", color: "#96989d", padding: "10px 16px", borderRadius: 8, cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>Annulla</button>
-              <button onClick={addServer} style={{ background: "#5865f2", border: "none", color: "#fff", padding: "10px 20px", borderRadius: 8, cursor: "pointer", fontSize: 14, fontWeight: 700, fontFamily: "inherit" }}>Crea</button>
+            <input
+              value={newServerName}
+              onChange={e => setNewServerName(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && addServer()}
+              placeholder="Nome del server"
+              autoFocus
+              style={{ width: "100%", background: "#1e1f22", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "14px 16px", color: "#fff", fontSize: 15, fontFamily: "inherit", marginBottom: 18 }}
+            />
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button
+                onClick={() => setShowAddServer(false)}
+                style={{ background: "transparent", border: "none", color: "#96989d", padding: "12px 18px", borderRadius: 10, cursor: "pointer", fontSize: 14, fontFamily: "inherit", minHeight: 44 }}
+              >Annulla</button>
+              <button
+                onClick={addServer}
+                style={{ background: "#5865f2", border: "none", color: "#fff", padding: "12px 22px", borderRadius: 10, cursor: "pointer", fontSize: 14, fontWeight: 700, fontFamily: "inherit", minHeight: 44 }}
+              >Crea</button>
             </div>
           </div>
         </div>
